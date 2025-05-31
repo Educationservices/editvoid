@@ -554,44 +554,44 @@ def get_settings():
 @app.route('/')
 def serve_index():
     """Serve the main index.html file"""
-    return send_from_directory(app.static_folder, 'index.html')
+    try:
+        return send_from_directory(app.static_folder, 'index.html')
+    except FileNotFoundError:
+        return jsonify({
+            'message': 'Frontend not found. Please build the client files.',
+            'status': 'Backend is running',
+            'endpoints': [
+                '/register - POST - Register new user',
+                '/login - POST - Login user',
+                '/send_message - POST - Send message',
+                '/get_messages - GET - Get all messages',
+                '/update_profile_picture - POST - Update profile picture',
+                '/send_friend_request - POST - Send friend request',
+                '/accept_friend_request - POST - Accept friend request',
+                '/decline_friend_request - POST - Decline friend request',
+                '/get_friends - GET - Get friends and requests',
+                '/update_settings - POST - Update user settings',
+                '/get_settings - GET - Get user settings'
+            ]
+        }), 404
 
 @app.route('/<path:path>')
 def serve_static(path):
     """Serve static files"""
     return send_from_directory(app.static_folder, path)
 
-@app.route('/', methods=['GET'])
-def home():
-    """Home route"""
-    return jsonify({
-        'message': 'Enhanced Discord Clone API Server with MongoDB',
-        'status': 'Running',
-        'endpoints': [
-            '/register - POST - Register new user',
-            '/login - POST - Login user',
-            '/send_message - POST - Send message',
-            '/get_messages - GET - Get all messages',
-            '/update_profile_picture - POST - Update profile picture',
-            '/send_friend_request - POST - Send friend request',
-            '/accept_friend_request - POST - Accept friend request',
-            '/decline_friend_request - POST - Decline friend request',
-            '/get_friends - GET - Get friends and requests',
-            '/update_settings - POST - Update user settings',
-            '/get_settings - GET - Get user settings'
-        ]
-    })
-
 if __name__ == '__main__':
     print("Starting Enhanced Discord Clone Server with MongoDB...")
     print("Server will run on http://localhost:5000")
-    print("\nNew features:")
-    print("- MongoDB database integration")
-    print("- Environment variable configuration")
-    print("- Friend system with requests")
-    print("- Profile pictures (URL and upload)")
-    print("- User settings (theme, failsafe)")
-    print("- Failsafe feature with customizable keys")
+    print("\nDirectory structure:")
+    print(f"Static files served from: {os.path.abspath(app.static_folder)}")
+    
+    # Verify static folder exists
+    if not os.path.exists(app.static_folder):
+        print(f"\nWARNING: Static folder not found at {app.static_folder}")
+        print("Please ensure your client files are built in the correct location.")
+        print("The backend API will still work, but frontend won't be served.")
+    
     print("\nPress Ctrl+C to stop the server")
     
     app.run(debug=True, host='0.0.0.0', port=5000)
