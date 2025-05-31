@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_from_directory, send_file
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 from pymongo import MongoClient
 from bson.objectid import ObjectId
@@ -12,7 +12,7 @@ import certifi
 # Load environment variables
 load_dotenv()
 
-app = Flask(__name__, static_folder='.', static_url_path='')
+app = Flask(__name__, static_folder='../client', static_url_path='')
 CORS(app)
 
 # MongoDB configuration
@@ -37,21 +37,7 @@ def get_user_by_username(username):
     """Get user data by username"""
     return accounts.find_one({'username': {'$regex': f'^{username}$', '$options': 'i'}})
 
-# Static file serving routes
-@app.route('/')
-def serve_index():
-    """Serve the index.html file from root directory"""
-    try:
-        return send_file('index.html')
-    except FileNotFoundError:
-        return jsonify({
-            'error': 'index.html not found in root directory',
-            'message': 'Please ensure index.html exists in the same directory as this Flask server'
-        }), 404
-
-
-# API Routes
-@app.route('/api/register', methods=['POST'])
+@app.route('/register', methods=['POST'])
 def register():
     """Register a new user"""
     try:
@@ -123,7 +109,7 @@ def register():
             'message': f'Server error: {str(e)}'
         })
 
-@app.route('/api/login', methods=['POST'])
+@app.route('/login', methods=['POST'])
 def login():
     """Login user"""
     try:
@@ -161,7 +147,7 @@ def login():
             'message': f'Server error: {str(e)}'
         })
 
-@app.route('/api/send_message', methods=['POST'])
+@app.route('/send_message', methods=['POST'])
 def send_message():
     """Send a new message"""
     try:
@@ -206,7 +192,7 @@ def send_message():
             'message': f'Server error: {str(e)}'
         })
 
-@app.route('/api/get_messages', methods=['GET'])
+@app.route('/get_messages', methods=['GET'])
 def get_messages():
     """Get all messages"""
     try:
@@ -227,7 +213,7 @@ def get_messages():
             'messages': []
         })
 
-@app.route('/api/update_profile_picture', methods=['POST'])
+@app.route('/update_profile_picture', methods=['POST'])
 def update_profile_picture():
     """Update user's profile picture"""
     try:
@@ -263,7 +249,7 @@ def update_profile_picture():
             'message': f'Server error: {str(e)}'
         })
 
-@app.route('/api/send_friend_request', methods=['POST'])
+@app.route('/send_friend_request', methods=['POST'])
 def send_friend_request():
     """Send a friend request"""
     try:
@@ -365,7 +351,7 @@ def send_friend_request():
             'message': f'Server error: {str(e)}'
         })
 
-@app.route('/api/accept_friend_request', methods=['POST'])
+@app.route('/accept_friend_request', methods=['POST'])
 def accept_friend_request():
     """Accept a friend request"""
     try:
@@ -412,7 +398,7 @@ def accept_friend_request():
             'message': f'Server error: {str(e)}'
         })
 
-@app.route('/api/decline_friend_request', methods=['POST'])
+@app.route('/decline_friend_request', methods=['POST'])
 def decline_friend_request():
     """Decline a friend request"""
     try:
@@ -447,7 +433,7 @@ def decline_friend_request():
             'message': f'Server error: {str(e)}'
         })
 
-@app.route('/api/get_friends', methods=['GET'])
+@app.route('/get_friends', methods=['GET'])
 def get_friends():
     """Get user's friends and pending requests"""
     try:
@@ -493,7 +479,7 @@ def get_friends():
             'message': f'Server error: {str(e)}'
         })
 
-@app.route('/api/update_settings', methods=['POST'])
+@app.route('/update_settings', methods=['POST'])
 def update_settings():
     """Update user settings"""
     try:
@@ -524,7 +510,7 @@ def update_settings():
             'message': f'Server error: {str(e)}'
         })
 
-@app.route('/api/get_settings', methods=['GET'])
+@app.route('/get_settings', methods=['GET'])
 def get_settings():
     """Get user settings"""
     try:
@@ -564,41 +550,48 @@ def get_settings():
             'message': f'Server error: {str(e)}'
         })
 
-@app.route('/api/status', methods=['GET'])
-def api_status():
-    """API status route"""
+
+@app.route('/')
+def serve_index():
+    """Serve the main index.html file"""
+    return send_from_directory(app.static_folder, 'index.html')
+
+@app.route('/<path:path>')
+def serve_static(path):
+    """Serve static files"""
+    return send_from_directory(app.static_folder, path)
+
+@app.route('/', methods=['GET'])
+def home():
+    """Home route"""
     return jsonify({
         'message': 'Enhanced Discord Clone API Server with MongoDB',
         'status': 'Running',
         'endpoints': [
-            '/api/register - POST - Register new user',
-            '/api/login - POST - Login user',
-            '/api/send_message - POST - Send message',
-            '/api/get_messages - GET - Get all messages',
-            '/api/update_profile_picture - POST - Update profile picture',
-            '/api/send_friend_request - POST - Send friend request',
-            '/api/accept_friend_request - POST - Accept friend request',
-            '/api/decline_friend_request - POST - Decline friend request',
-            '/api/get_friends - GET - Get friends and requests',
-            '/api/update_settings - POST - Update user settings',
-            '/api/get_settings - GET - Get user settings'
+            '/register - POST - Register new user',
+            '/login - POST - Login user',
+            '/send_message - POST - Send message',
+            '/get_messages - GET - Get all messages',
+            '/update_profile_picture - POST - Update profile picture',
+            '/send_friend_request - POST - Send friend request',
+            '/accept_friend_request - POST - Accept friend request',
+            '/decline_friend_request - POST - Decline friend request',
+            '/get_friends - GET - Get friends and requests',
+            '/update_settings - POST - Update user settings',
+            '/get_settings - GET - Get user settings'
         ]
     })
 
 if __name__ == '__main__':
-    print("Starting Enhanced Discord Clone Server with MongoDB and Static File Hosting...")
+    print("Starting Enhanced Discord Clone Server with MongoDB...")
     print("Server will run on http://localhost:5000")
-    print("\nFeatures:")
+    print("\nNew features:")
     print("- MongoDB database integration")
     print("- Environment variable configuration")
     print("- Friend system with requests")
     print("- Profile pictures (URL and upload)")
     print("- User settings (theme, failsafe)")
-    print("- Static file hosting (serves index.html and other files)")
-    print("\nRoutes:")
-    print("- / -> serves index.html")
-    print("- /<filename> -> serves static files (CSS, JS, images)")
-    print("- /api/* -> API endpoints")
+    print("- Failsafe feature with customizable keys")
     print("\nPress Ctrl+C to stop the server")
     
     app.run(debug=True, host='0.0.0.0', port=5000)
