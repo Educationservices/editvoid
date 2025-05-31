@@ -385,131 +385,100 @@ def update_profile_picture():
         })
 
 @app.route('/send_friend_request', methods=['POST'])
+@app.route('/send_friend_request', methods=['POST'])
 def send_friend_request():
-    """Send a friend request"""
     try:
         data = request.get_json()
         sender = data.get('sender', '').strip()
         receiver = data.get('receiver', '').strip()
-        
+
+        # Input validation
         if not sender or not receiver:
-            return jsonify({
-                'success': False,
-                'message': 'Sender and receiver are required'
-            })
-        
+            return jsonify({'success': False, 'message': 'Both sender and receiver are required'})
+
         if sender.lower() == receiver.lower():
-            return jsonify({
-                'success': False,
-                'message': 'Cannot send friend request to yourself'
-            })
-        
+            return jsonify({'success': False, 'message': 'Cannot send friend request to yourself'})
+
         # Check if receiver exists
         receiver_user = accounts.find_one({'username': {'$regex': f'^{receiver}$', '$options': 'i'}})
         if not receiver_user:
-            return jsonify({
-                'success': False,
-                'message': 'User not found'
-            })
-        
+            return jsonify({'success': False, 'message': 'User not found'})
+
         # Get actual username with correct case
         receiver = receiver_user['username']
-        
-        # Get sender's friends data
-        sender_friends = friends.find_one({'username': sender})
-        if not sender_friends:
-            sender_friends = {
-                'username': sender,
-                'friends': [],
-                'pending_sent': [],
-                'pending_received': []
-            }
-            friends.insert_one(sender_friends)
-        
-        # Get receiver's friends data
-        receiver_friends = friends.find_one({'username': receiver})
-        if not receiver_friends:
-            receiver_friends = {
-                'username': receiver,
-                'friends': [],
-                'pending_sent': [],
-                'pending_received': []
-            }
-            friends.insert_one(receiver_friends)
-        
+
+        # Check existing relationships
+        sender_data = friends.find_one({'username': sender}) or {
+            'username': sender,
+            'friends': [],
+            'pending_sent': [],
+            'pending_received': []
+        }
+
+        receiver_data = friends.find_one({'username': receiver}) or {
+            'username': receiver,
+            'friends': [],
+            'pending_sent': [],
+            'pending_received': []
+        }
+
         # Check if already friends
-        if receiver in sender_friends['friends']:
-            return jsonify({
-                'success': False,
-                'message': 'Already friends with this user'
-            })
-        
+        if receiver in sender_data.get('friends', []):
+            return jsonify({'success': False, 'message': 'Already friends with this user'})
+
         # Check if request already sent
-        if receiver in sender_friends['pending_sent']:
-            return jsonify({
-                'success': False,
-                'message': 'Friend request already sent'
-            })
-        
-        # Check if receiver already sent request to sender
-        if sender in receiver_friends['pending_sent']:
-            # Auto-accept and become friends
+        if receiver in sender_data.get('pending_sent', []):
+            return jsonify({'success': False, 'message': 'Friend request already sent'})
+
+        # Check if receiver already sent request to sender (auto-accept)
+        if sender in receiver_data.get('pending_sent', []):
+            # Update both users' friend lists
             friends.update_one(
                 {'username': sender},
-                {'$addToSet': {'friends': receiver}, '$pull': {'pending_received': receiver}}
+                {'$addToSet': {'friends': receiver}, '$pull': {'pending_received': receiver}},
+                upsert=True
             )
             friends.update_one(
                 {'username': receiver},
-                {'$addToSet': {'friends': sender}, '$pull': {'pending_sent': sender}}
+                {'$addToSet': {'friends': sender}, '$pull': {'pending_sent': sender}},
+                upsert=True
             )
-            
-            # Create notifications for both users
-            create_notification(
-                sender,
-                'friend_accepted',
-                'Friend Request Accepted!',
-                f'You are now friends with {receiver}',
-                {'friend': receiver}
-            )
-            create_notification(
-                receiver,
-                'friend_accepted',
-                'Friend Request Accepted!',
-                f'You are now friends with {sender}',
-                {'friend': sender}
-            )
-            
+
+            # Create notifications
+            create_notification(sender, 'friend_accepted', 'Friend Request Accepted!', f'You are now friends with {receiver}')
+            create_notification(receiver, 'friend_accepted', 'Friend Request Accepted!', f'You are now friends with {sender}')
+
             return jsonify({
                 'success': True,
                 'message': f'Friend request accepted! You are now friends with {receiver}'
             })
-        
-        # Send friend request
+
+        # Send new friend request
         friends.update_one(
             {'username': sender},
-            {'$addToSet': {'pending_sent': receiver}}
+            {'$addToSet': {'pending_sent': receiver}},
+            upsert=True
         )
         friends.update_one(
             {'username': receiver},
-            {'$addToSet': {'pending_received': sender}}
+            {'$addToSet': {'pending_received': sender}},
+            upsert=True
         )
-        
-        # Create notification for receiver
-        receiver_settings = settings.find_one({'username': receiver})
-        if receiver_settings and receiver_settings.get('friend_request_notifications', True):
-            create_notification(
-                receiver,
-                'friend_request',
-                'New Friend Request',
-                f'{sender} wants to be your friend',
-                {'sender': sender}
-            )
-        
+
+        # Create notification
+        create_notification(
+            receiver,
+            'friend_request',
+            'New Friend Request',
+            f'{sender} wants to be your friend',
+            {'sender': sender}
+        )
+
         return jsonify({
             'success': True,
             'message': f'Friend request sent to {receiver}'
         })
-        
+
     except Exception as e:
         return jsonify({
             'success': False,
@@ -518,30 +487,23 @@ def send_friend_request():
 
 @app.route('/accept_friend_request', methods=['POST'])
 def accept_friend_request():
-    """Accept a friend request"""
     try:
         data = request.get_json()
         receiver = data.get('receiver', '').strip()
         sender = data.get('sender', '').strip()
-        
+
         if not receiver or not sender:
-            return jsonify({
-                'success': False,
-                'message': 'Receiver and sender are required'
-            })
-        
+            return jsonify({'success': False, 'message': 'Both receiver and sender are required'})
+
         # Verify the request exists
         receiver_data = friends.find_one({
             'username': receiver,
             'pending_received': sender
         })
-        
+
         if not receiver_data:
-            return jsonify({
-                'success': False,
-                'message': 'Friend request not found'
-            })
-        
+            return jsonify({'success': False, 'message': 'Friend request not found or already handled'})
+
         # Add to friends lists
         friends.update_one(
             {'username': receiver},
@@ -551,8 +513,8 @@ def accept_friend_request():
             {'username': sender},
             {'$addToSet': {'friends': receiver}, '$pull': {'pending_sent': receiver}}
         )
-        
-        # Create notifications for both users
+
+        # Create notifications
         create_notification(
             sender,
             'friend_accepted',
@@ -567,12 +529,12 @@ def accept_friend_request():
             f'You are now friends with {sender}',
             {'friend': sender}
         )
-        
+
         return jsonify({
             'success': True,
             'message': f'You are now friends with {sender}'
         })
-        
+
     except Exception as e:
         return jsonify({
             'success': False,
@@ -581,18 +543,14 @@ def accept_friend_request():
 
 @app.route('/decline_friend_request', methods=['POST'])
 def decline_friend_request():
-    """Decline a friend request"""
     try:
         data = request.get_json()
         receiver = data.get('receiver', '').strip()
         sender = data.get('sender', '').strip()
-        
+
         if not receiver or not sender:
-            return jsonify({
-                'success': False,
-                'message': 'Receiver and sender are required'
-            })
-        
+            return jsonify({'success': False, 'message': 'Both receiver and sender are required'})
+
         # Remove from pending lists
         friends.update_one(
             {'username': receiver},
@@ -602,12 +560,12 @@ def decline_friend_request():
             {'username': sender},
             {'$pull': {'pending_sent': receiver}}
         )
-        
+
         return jsonify({
             'success': True,
             'message': 'Friend request declined'
         })
-        
+
     except Exception as e:
         return jsonify({
             'success': False,
