@@ -889,4 +889,16 @@ if __name__ == '__main__':
     print("- Typing indicators")
     print("- Notification management system")
     
-    socketio.run(app, debug=True, host='0.0.0.0', port=5000)
+    # Check if running in production environment
+    port = int(os.environ.get('PORT', 5000))
+    debug_mode = os.environ.get('FLASK_ENV') == 'development'
+    
+    if debug_mode:
+        socketio.run(app, debug=True, host='0.0.0.0', port=port)
+    else:
+        # Production configuration
+        socketio.run(app, 
+                    debug=False, 
+                    host='0.0.0.0', 
+                    port=port,
+                    allow_unsafe_werkzeug=True)
