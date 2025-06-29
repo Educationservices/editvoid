@@ -650,11 +650,11 @@
 </head>
 <body>
     <!-- Login Screen -->
-    <div class="login-screen" id="loginScreen">
-        <div class="login-container">
-            <h1 class="login-title">Voidagon C</h1>
-            <div id="loginForm">
-                <div class="form-group">
+  <div class="login-screen" id="loginScreen">
+    <div class="login-container">
+        <h1 class="login-title">Voidagon C</h1>
+        <div id="loginForm">
+            <form id="loginFormElement"> <div class="form-group">
                     <label for="loginUsername">Username</label>
                     <input type="text" id="loginUsername" class="form-input" placeholder="Enter your username">
                 </div>
@@ -662,12 +662,10 @@
                     <label for="loginPassword">Password</label>
                     <input type="password" id="loginPassword" class="form-input" placeholder="Enter your password">
                 </div>
-                <button class="btn" id="loginBtn">Sign In</button>
-                <button class="btn btn-secondary" id="showRegisterBtn">Create Account</button>
-                <div id="loginMessage"></div>
-            </div>
-            <div id="registerForm" style="display: none;">
-                <div class="form-group">
+                <button type="submit" class="btn" id="loginBtn">Sign In</button> <button type="button" class="btn btn-secondary" id="showRegisterBtn">Create Account</button> <div id="loginMessage"></div>
+            </form> </div>
+        <div id="registerForm" style="display: none;">
+            <form id="registerFormElement"> <div class="form-group">
                     <label for="registerUsername">Username</label>
                     <input type="text" id="registerUsername" class="form-input" placeholder="Choose a username">
                 </div>
@@ -675,10 +673,10 @@
                     <label for="registerPassword">Password</label>
                     <input type="password" id="registerPassword" class="form-input" placeholder="Choose a password">
                 </div>
-                <button class="btn" id="registerBtn">Create Account</button>
-                <button class="btn btn-secondary" id="showLoginBtn">Back to Sign In</button>
-                <div id="registerMessage"></div>
-            </div>
+                <button type="submit" class="btn" id="registerBtn">Create Account</button> <button type="button" class="btn btn-secondary" id="showLoginBtn">Back to Sign In</button> <div id="registerMessage"></div>
+            </form> </div>
+    </div>
+</div>
         </div>
     </div>
 
